@@ -314,19 +314,15 @@ def mymodel_cal(logger, test_dataloader, the_time=my_time):
     model.to(device)
     embedding.eval()
     model.eval()
-    target_size = len(args.rel2label)
+    target_size = len(args.emt2label)
     result = np.zeros([target_size, target_size])
     for step, batch in enumerate(test_dataloader):
         batch = tuple(t.to(device) for t in batch)
-        b_input_ids1, b_input_ids2, b_labels = batch
-        b_input_ids1 = b_input_ids1.squeeze(1).long()
-        b_input_ids2 = b_input_ids2.squeeze(1).long()
+        b_input_ids, b_labels = batch
+        b_input_ids = b_input_ids.squeeze(1).long()
         with torch.no_grad():
-            text_embedding1 = embedding(input_ids=b_input_ids1)
-            text_embedding2 = embedding(input_ids=b_input_ids2,
-                                        token_type_ids=torch.ones(b_input_ids2.size(),
-                                                                  dtype=torch.long, device=device))
-            pred = model.get_guess(text_embedding1, text_embedding2)
+            text_embedding = embedding(input_ids=b_input_ids)
+            pred = model.get_guess(text_embedding)
         size = pred.size()[0]
         for i in range(size):
             try:
@@ -356,11 +352,12 @@ def mymodel_pred(logger, text, the_time=my_time):
     model.eval()
     tokenizer = ElectraTokenizer.from_pretrained(args.vocab_dir)
     input_ids, _, _ = text2ids(tokenizer, text, args.max_sent_len)
+    input_ids = torch.Tensor(input_ids).to(device=device)
     input_ids = input_ids.squeeze(1).long()
     with torch.no_grad():
         text_embedding = embedding(input_ids=input_ids)
         pred = model.get_guess(text_embedding)
-    print(args.label2emt[pred])
+    print(args.label2emt[label_from_output(pred[0].to('cpu')).item()])
     return
 
 
